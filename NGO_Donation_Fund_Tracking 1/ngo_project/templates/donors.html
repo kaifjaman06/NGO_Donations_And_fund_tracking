@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Donors — NGO Fund Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Donors</h1>
+        <p>Manage donor records and contact information</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('addDonorModal')">
+        <i class="fa-solid fa-plus"></i> Add Donor
+    </button>
+</div>
+
+<div class="card">
+    <form method="GET" class="filter-bar">
+        <input type="text" name="q" value="{{ search }}" placeholder="Search by name, email, or phone...">
+        <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        {% if search %}<a href="{{ url_for('donors') }}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th><th>Type</th><th>Email</th><th>Phone</th><th>PAN</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in donors %}
+            <tr>
+                <td>{{ d.name }}</td>
+                <td><span class="badge badge-mode">{{ d.donor_type }}</span></td>
+                <td>{{ d.email or '—' }}</td>
+                <td>{{ d.phone or '—' }}</td>
+                <td>{{ d.pan_number or '—' }}</td>
+                <td class="actions">
+                    <button class="icon-btn" title="Edit" onclick='openEditDonor({{ d|tojson }})'>
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <form method="POST" action="{{ url_for('delete_donor', donor_id=d.donor_id) }}"
+                          onsubmit="return confirm('Delete donor {{ d.name }}? This cannot be undone.');" style="display:inline;">
+                        <button class="icon-btn icon-btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="empty-row">No donors found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal" id="addDonorModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>Add Donor</h3>
+            <button class="modal-close" onclick="closeModal('addDonorModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_donor') }}" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <label>Name *<input type="text" name="name" required></label>
+            <label>Donor Type
+                <select name="donor_type">
+                    <option>Individual</option><option>Corporate</option>
+                    <option>Trust</option><option>Government</option><option>Other</option>
+                </select>
+            </label>
+            <label>Email<input type="email" name="email"></label>
+            <label>Phone<input type="text" name="phone"></label>
+            <label>PAN Number<input type="text" name="pan_number"></label>
+            <label class="full-width">Address<textarea name="address" rows="2"></textarea></label>
+            <div class="form-actions full-width">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('addDonorModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Donor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="editDonorModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>Edit Donor</h3>
+            <button class="modal-close" onclick="closeModal('editDonorModal')">&times;</button>
+        </div>
+        <form method="POST" id="editDonorForm" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <label>Name *<input type="text" name="name" id="edit_name" required></label>
+            <label>Donor Type
+                <select name="donor_type" id="edit_donor_type">
+                    <option>Individual</option><option>Corporate</option>
+                    <option>Trust</option><option>Government</option><option>Other</option>
+                </select>
+            </label>
+            <label>Email<input type="email" name="email" id="edit_email"></label>
+            <label>Phone<input type="text" name="phone" id="edit_phone"></label>
+            <label>PAN Number<input type="text" name="pan_number" id="edit_pan_number"></label>
+            <label class="full-width">Address<textarea name="address" id="edit_address" rows="2"></textarea></label>
+            <div class="form-actions full-width">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editDonorModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Donor</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditDonor(d) {
+    document.getElementById('editDonorForm').action = "/donors/edit/" + d.donor_id;
+    document.getElementById('edit_name').value = d.name || '';
+    document.getElementById('edit_donor_type').value = d.donor_type || 'Individual';
+    document.getElementById('edit_email').value = d.email || '';
+    document.getElementById('edit_phone').value = d.phone || '';
+    document.getElementById('edit_pan_number').value = d.pan_number || '';
+    document.getElementById('edit_address').value = d.address || '';
+    openModal('editDonorModal');
+}
+</script>
+{% endblock %}

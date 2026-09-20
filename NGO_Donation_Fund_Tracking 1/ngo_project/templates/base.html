@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}NGO Fund Tracker{% endblock %}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+{% if current_admin %}
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <i class="fa-solid fa-hand-holding-heart"></i>
+            <span>NGO Fund Tracker</span>
+        </div>
+        <nav class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint=='dashboard' }}">
+                <i class="fa-solid fa-gauge-high"></i> Dashboard
+            </a>
+            <a href="{{ url_for('donors') }}" class="{{ 'active' if request.endpoint=='donors' }}">
+                <i class="fa-solid fa-people-group"></i> Donors
+            </a>
+            <a href="{{ url_for('donations') }}" class="{{ 'active' if request.endpoint=='donations' }}">
+                <i class="fa-solid fa-hand-holding-dollar"></i> Donations
+            </a>
+            <a href="{{ url_for('projects') }}" class="{{ 'active' if request.endpoint=='projects' }}">
+                <i class="fa-solid fa-diagram-project"></i> Projects
+            </a>
+            <a href="{{ url_for('expenses') }}" class="{{ 'active' if request.endpoint=='expenses' }}">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Expenses
+            </a>
+            <a href="{{ url_for('reports') }}" class="{{ 'active' if request.endpoint=='reports' }}">
+                <i class="fa-solid fa-chart-pie"></i> Reports
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="admin-chip">
+                <i class="fa-solid fa-circle-user"></i>
+                <span>{{ current_admin }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-link">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        {% include '_flashes.html' %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+{% else %}
+    {% include '_flashes.html' %}
+    {% block content_public %}{% endblock %}
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

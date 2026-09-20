@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Sign Up — NGO Fund Tracker{% endblock %}
+{% block content_public %}
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <i class="fa-solid fa-hand-holding-heart"></i>
+            <h1>Create an Account</h1>
+            <p>NGO Fund Tracker — staff / admin signup</p>
+        </div>
+        <form method="POST" action="{{ url_for('signup') }}" class="auth-form">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <label>
+                Full Name
+                <input type="text" name="full_name" required autofocus value="{{ full_name or '' }}" placeholder="Jane Doe">
+            </label>
+            <label>
+                Email
+                <input type="email" name="email" required value="{{ email or '' }}" placeholder="you@gmail.com">
+            </label>
+            <label>
+                Password
+                <input type="password" name="password" required minlength="6" placeholder="At least 6 characters">
+            </label>
+            <label>
+                Confirm Password
+                <input type="password" name="confirm_password" required minlength="6" placeholder="Re-enter password">
+            </label>
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-user-plus"></i> Create Account
+            </button>
+        </form>
+        <p class="auth-hint">Already have an account? <a href="{{ url_for('login') }}" class="link">Log in</a></p>
+    </div>
+</div>
+{% endblock %}

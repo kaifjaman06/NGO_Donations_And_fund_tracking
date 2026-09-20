@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — NGO Fund Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Dashboard</h1>
+    <p>Overview of donors, donations, and fund utilization</p>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon icon-blue"><i class="fa-solid fa-people-group"></i></div>
+        <div>
+            <span class="stat-label">Total Donors</span>
+            <span class="stat-value">{{ total_donors }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+        <div>
+            <span class="stat-label">Total Donations</span>
+            <span class="stat-value">₹{{ "%.2f"|format(total_donations) }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-red"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+        <div>
+            <span class="stat-label">Total Expenses</span>
+            <span class="stat-value">₹{{ "%.2f"|format(total_expenses) }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-purple"><i class="fa-solid fa-diagram-project"></i></div>
+        <div>
+            <span class="stat-label">Active Projects</span>
+            <span class="stat-value">{{ active_projects }}</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon {{ 'icon-green' if balance >= 0 else 'icon-red' }}">
+            <i class="fa-solid fa-wallet"></i>
+        </div>
+        <div>
+            <span class="stat-label">Fund Balance</span>
+            <span class="stat-value">₹{{ "%.2f"|format(balance) }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h2>Recent Donations</h2>
+            <a href="{{ url_for('donations') }}" class="link">View all →</a>
+        </div>
+        <table class="table">
+            <thead>
+                <tr><th>Donor</th><th>Project</th><th>Amount</th><th>Mode</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+                {% for d in recent_donations %}
+                <tr>
+                    <td>{{ d.donor_name }}</td>
+                    <td>{{ d.project_name or '—' }}</td>
+                    <td>₹{{ "%.2f"|format(d.amount) }}</td>
+                    <td><span class="badge badge-mode">{{ d.payment_mode }}</span></td>
+                    <td>{{ d.donation_date }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty-row">No donations recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Project Fund Overview</h2>
+            <a href="{{ url_for('projects') }}" class="link">View all →</a>
+        </div>
+        <table class="table">
+            <thead>
+                <tr><th>Project</th><th>Raised</th><th>Spent</th><th>Balance</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                {% for p in project_funds %}
+                <tr>
+                    <td>{{ p.project_name }}</td>
+                    <td>₹{{ "%.2f"|format(p.raised) }}</td>
+                    <td>₹{{ "%.2f"|format(p.spent) }}</td>
+                    <td class="{{ 'text-danger' if (p.raised - p.spent) < 0 else 'text-success' }}">
+                        ₹{{ "%.2f"|format(p.raised - p.spent) }}
+                    </td>
+                    <td><span class="badge badge-status-{{ p.status|lower|replace(' ', '-') }}">{{ p.status }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty-row">No projects yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

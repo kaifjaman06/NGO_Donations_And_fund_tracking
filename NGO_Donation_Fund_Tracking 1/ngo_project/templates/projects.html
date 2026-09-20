@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Projects — NGO Fund Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Projects</h1>
+        <p>Track fund allocation and utilization per project</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('addProjectModal')">
+        <i class="fa-solid fa-plus"></i> New Project
+    </button>
+</div>
+
+<div class="project-grid">
+    {% for p in projects %}
+    {% set pct = ((p.raised / p.target_amount * 100) if p.target_amount and p.target_amount > 0 else 0) %}
+    <div class="card project-card">
+        <div class="project-card-head">
+            <h3>{{ p.project_name }}</h3>
+            <span class="badge badge-status-{{ p.status|lower|replace(' ', '-') }}">{{ p.status }}</span>
+        </div>
+        <p class="project-desc">{{ p.description or 'No description provided.' }}</p>
+
+        <div class="progress-track">
+            <div class="progress-fill" style="width: {{ [pct, 100]|min }}%;"></div>
+        </div>
+        <div class="progress-meta">
+            <span>₹{{ "%.2f"|format(p.raised) }} raised</span>
+            <span>Target: ₹{{ "%.2f"|format(p.target_amount) }}</span>
+        </div>
+
+        <div class="project-stats">
+            <div><span class="mini-label">Spent</span><span>₹{{ "%.2f"|format(p.spent) }}</span></div>
+            <div><span class="mini-label">Balance</span>
+                <span class="{{ 'text-danger' if (p.raised - p.spent) < 0 else 'text-success' }}">
+                    ₹{{ "%.2f"|format(p.raised - p.spent) }}
+                </span>
+            </div>
+        </div>
+
+        <div class="project-dates">
+            <span><i class="fa-regular fa-calendar"></i> {{ p.start_date or '—' }} to {{ p.end_date or 'ongoing' }}</span>
+        </div>
+
+        <div class="project-actions">
+            <button class="icon-btn" onclick='openEditProject({{ p|tojson }})'><i class="fa-solid fa-pen"></i> Edit</button>
+            <form method="POST" action="{{ url_for('delete_project', project_id=p.project_id) }}"
+                  onsubmit="return confirm('Delete project {{ p.project_name }}? Linked donations will be un-earmarked.');">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                <button class="icon-btn icon-btn-danger"><i class="fa-solid fa-trash"></i> Delete</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <p class="empty-row">No projects yet. Click "New Project" to create one.</p>
+    {% endfor %}
+</div>
+
+<!-- Add Project Modal -->
+<div class="modal" id="addProjectModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>New Project</h3>
+            <button class="modal-close" onclick="closeModal('addProjectModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_project') }}" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <label class="full-width">Project Name *<input type="text" name="project_name" required></label>
+            <label class="full-width">Description<textarea name="description" rows="2"></textarea></label>
+            <label>Target Amount (₹)<input type="number" name="target_amount" step="0.01" min="0"></label>
+            <label>Status
+                <select name="status">
+                    <option>Active</option><option>Planned</option><option>Completed</option>
+                    <option>On Hold</option><option>Cancelled</option>
+                </select>
+            </label>
+            <label>Start Date<input type="date" name="start_date"></label>
+            <label>End Date<input type="date" name="end_date"></label>
+            <div class="form-actions full-width">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('addProjectModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Project</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Project Modal -->
+<div class="modal" id="editProjectModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>Edit Project</h3>
+            <button class="modal-close" onclick="closeModal('editProjectModal')">&times;</button>
+        </div>
+        <form method="POST" id="editProjectForm" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <label class="full-width">Project Name *<input type="text" name="project_name" id="edit_project_name" required></label>
+            <label class="full-width">Description<textarea name="description" id="edit_description" rows="2"></textarea></label>
+            <label>Target Amount (₹)<input type="number" name="target_amount" id="edit_target_amount" step="0.01" min="0"></label>
+            <label>Status
+                <select name="status" id="edit_status">
+                    <option>Active</option><option>Planned</option><option>Completed</option>
+                    <option>On Hold</option><option>Cancelled</option>
+                </select>
+            </label>
+            <label>Start Date<input type="date" name="start_date" id="edit_start_date"></label>
+            <label>End Date<input type="date" name="end_date" id="edit_end_date"></label>
+            <div class="form-actions full-width">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editProjectModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Project</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditProject(p) {
+    document.getElementById('editProjectForm').action = "/projects/edit/" + p.project_id;
+    document.getElementById('edit_project_name').value = p.project_name || '';
+    document.getElementById('edit_description').value = p.description || '';
+    document.getElementById('edit_target_amount').value = p.target_amount || 0;
+    document.getElementById('edit_status').value = p.status || 'Active';
+    document.getElementById('edit_start_date').value = p.start_date || '';
+    document.getElementById('edit_end_date').value = p.end_date || '';
+    openModal('editProjectModal');
+}
+</script>
+{% endblock %}

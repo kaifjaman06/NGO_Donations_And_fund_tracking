@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Donations — NGO Fund Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Donations</h1>
+        <p>Record and track incoming donations across all payment modes</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('addDonationModal')">
+        <i class="fa-solid fa-plus"></i> Record Donation
+    </button>
+</div>
+
+<div class="card">
+    <form method="GET" class="filter-bar">
+        <select name="mode" onchange="this.form.submit()">
+            <option value="">All Payment Modes</option>
+            {% for m in ['Online', 'Cheque', 'Bank Transfer', 'Cash'] %}
+            <option value="{{ m }}" {{ 'selected' if mode_filter == m }}>{{ m }}</option>
+            {% endfor %}
+        </select>
+        <select name="project_id" onchange="this.form.submit()">
+            <option value="">All Projects</option>
+            {% for p in project_list %}
+            <option value="{{ p.project_id }}" {{ 'selected' if project_filter|string == p.project_id|string }}>{{ p.project_name }}</option>
+            {% endfor %}
+        </select>
+        {% if mode_filter or project_filter %}<a href="{{ url_for('donations') }}" class="btn btn-ghost">Clear Filters</a>{% endif %}
+    </form>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Receipt No.</th><th>Donor</th><th>Project</th><th>Amount</th>
+                <th>Mode</th><th>Date</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in donations %}
+            <tr>
+                <td>{{ d.receipt_no }}</td>
+                <td>{{ d.donor_name }}</td>
+                <td>{{ d.project_name or '—' }}</td>
+                <td>₹{{ "%.2f"|format(d.amount) }}</td>
+                <td><span class="badge badge-mode">{{ d.payment_mode }}</span></td>
+                <td>{{ d.donation_date }}</td>
+                <td class="actions">
+                    <a class="icon-btn" title="View Receipt" href="{{ url_for('view_receipt', donation_id=d.donation_id) }}">
+                        <i class="fa-solid fa-receipt"></i>
+                    </a>
+                    <form method="POST" action="{{ url_for('delete_donation', donation_id=d.donation_id) }}"
+                          onsubmit="return confirm('Delete this donation record?');" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                        <button class="icon-btn icon-btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="empty-row">No donations found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Donation Modal -->
+<div class="modal" id="addDonationModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>Record Donation</h3>
+            <button class="modal-close" onclick="closeModal('addDonationModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_donation') }}" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <label>Donor *
+                <select name="donor_id" required>
+                    <option value="">Select donor…</option>
+                    {% for dn in donor_list %}<option value="{{ dn.donor_id }}">{{ dn.name }}</option>{% endfor %}
+                </select>
+            </label>
+            <label>Project (optional)
+                <select name="project_id">
+                    <option value="">General Fund (unearmarked)</option>
+                    {% for p in project_list %}<option value="{{ p.project_id }}">{{ p.project_name }}</option>{% endfor %}
+                </select>
+            </label>
+            <label>Amount (₹) *<input type="number" name="amount" step="0.01" min="0.01" required></label>
+            <label>Payment Mode *
+                <select name="payment_mode" id="payment_mode_select" required onchange="toggleTxnRef()">
+                    <option value="">Select mode…</option>
+                    <option value="Online">Online</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cash">Cash</option>
+                </select>
+            </label>
+            <label id="txn_ref_label" style="display:none;">Transaction / Cheque Reference
+                <input type="text" name="transaction_reference" id="txn_ref_input" placeholder="e.g. UTR / Cheque No.">
+            </label>
+            <label>Donation Date *<input type="date" name="donation_date" required value="{{ '' }}"></label>
+            <label class="full-width">Remarks<textarea name="remarks" rows="2"></textarea></label>
+            <div class="form-actions full-width">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('addDonationModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save &amp; Generate Receipt</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleTxnRef() {
+    const mode = document.getElementById('payment_mode_select').value;
+    const label = document.getElementById('txn_ref_label');
+    label.style.display = (mode === 'Cash') ? 'none' : 'block';
+}
+// Default the date input to today
+document.addEventListener('DOMContentLoaded', () => {
+    const dateInput = document.querySelector('input[name="donation_date"]');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

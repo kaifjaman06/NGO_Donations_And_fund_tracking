@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Receipt {{ donation.receipt_no }}{% endblock %}
+{% block content %}
+<div class="page-header no-print">
+    <div>
+        <h1>Donation Receipt</h1>
+        <p>{{ donation.receipt_no }}</p>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-secondary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+        <a href="{{ url_for('donations') }}" class="btn btn-ghost">Back to Donations</a>
+    </div>
+</div>
+
+<div class="receipt-sheet">
+    <div class="receipt-header">
+        <div>
+            <h2>NGO Fund Tracker</h2>
+            <p>Official Donation Receipt</p>
+        </div>
+        <div class="receipt-no-box">
+            <span>Receipt No.</span>
+            <strong>{{ donation.receipt_no }}</strong>
+        </div>
+    </div>
+    <hr>
+
+    <div class="receipt-grid">
+        <div>
+            <span class="mini-label">Donor Name</span>
+            <p>{{ donation.donor_name }}</p>
+        </div>
+        <div>
+            <span class="mini-label">Date</span>
+            <p>{{ donation.donation_date }}</p>
+        </div>
+        <div>
+            <span class="mini-label">Email</span>
+            <p>{{ donation.email or '—' }}</p>
+        </div>
+        <div>
+            <span class="mini-label">Phone</span>
+            <p>{{ donation.phone or '—' }}</p>
+        </div>
+        <div>
+            <span class="mini-label">PAN</span>
+            <p>{{ donation.pan_number or '—' }}</p>
+        </div>
+        <div>
+            <span class="mini-label">Project / Fund</span>
+            <p>{{ donation.project_name or 'General Fund' }}</p>
+        </div>
+        <div>
+            <span class="mini-label">Payment Mode</span>
+            <p>{{ donation.payment_mode }}</p>
+        </div>
+        <div>
+            <span class="mini-label">Transaction Reference</span>
+            <p>{{ donation.transaction_reference or '—' }}</p>
+        </div>
+    </div>
+
+    <div class="receipt-amount-box">
+        <span>Amount Donated</span>
+        <strong>₹{{ "%.2f"|format(donation.amount) }}</strong>
+    </div>
+
+    {% if donation.remarks %}
+    <div class="receipt-remarks">
+        <span class="mini-label">Remarks</span>
+        <p>{{ donation.remarks }}</p>
+    </div>
+    {% endif %}
+
+    <div class="receipt-footer">
+        <p>Thank you for your generous contribution. This receipt is system-generated and confirms
+        receipt of the above donation for the stated purpose.</p>
+        <div class="signature-line">Authorized Signatory</div>
+    </div>
+</div>
+{% endblock %}

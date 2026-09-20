@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Expenses — NGO Fund Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Expenses</h1>
+        <p>Record money spent against project funds</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('addExpenseModal')">
+        <i class="fa-solid fa-plus"></i> Record Expense
+    </button>
+</div>
+
+<div class="card">
+    <form method="GET" class="filter-bar">
+        <select name="project_id" onchange="this.form.submit()">
+            <option value="">All Projects</option>
+            {% for p in project_list %}
+            <option value="{{ p.project_id }}" {{ 'selected' if project_filter|string == p.project_id|string }}>{{ p.project_name }}</option>
+            {% endfor %}
+        </select>
+        {% if project_filter %}<a href="{{ url_for('expenses') }}" class="btn btn-ghost">Clear</a>{% endif %}
+    </form>
+
+    <table class="table">
+        <thead>
+            <tr><th>Project</th><th>Category</th><th>Amount</th><th>Date</th><th>Approved By</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for e in expenses %}
+            <tr>
+                <td>{{ e.project_name }}</td>
+                <td>{{ e.category }}</td>
+                <td>₹{{ "%.2f"|format(e.amount) }}</td>
+                <td>{{ e.expense_date }}</td>
+                <td>{{ e.approved_by or '—' }}</td>
+                <td class="actions">
+                    <form method="POST" action="{{ url_for('delete_expense', expense_id=e.expense_id) }}"
+                          onsubmit="return confirm('Delete this expense record?');" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                        <button class="icon-btn icon-btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="empty-row">No expenses recorded.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal" id="addExpenseModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>Record Expense</h3>
+            <button class="modal-close" onclick="closeModal('addExpenseModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('add_expense') }}" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <label class="full-width">Project *
+                <select name="project_id" id="expense_project_select" required onchange="showBalance()">
+                    <option value="">Select project…</option>
+                    {% for p in project_list %}<option value="{{ p.project_id }}">{{ p.project_name }}</option>{% endfor %}
+                </select>
+            </label>
+            <p id="balance_hint" class="hint-text full-width" style="display:none;"></p>
+            <label>Category *<input type="text" name="category" required placeholder="e.g. Supplies, Logistics"></label>
+            <label>Amount (₹) *<input type="number" name="amount" step="0.01" min="0.01" required></label>
+            <label>Expense Date *<input type="date" name="expense_date" required></label>
+            <label>Approved By<input type="text" name="approved_by"></label>
+            <label class="full-width">Description<textarea name="description" rows="2"></textarea></label>
+            <div class="form-actions full-width">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('addExpenseModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Expense</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const projectBalances = {{ balances|tojson }};
+
+function showBalance() {
+    const sel = document.getElementById('expense_project_select');
+    const hint = document.getElementById('balance_hint');
+    const match = projectBalances.find(b => String(b.project_id) === sel.value);
+    if (match) {
+        const bal = parseFloat(match.balance);
+        hint.style.display = 'block';
+        hint.textContent = `Available balance for ${match.project_name}: ₹${bal.toFixed(2)}`;
+        hint.className = 'hint-text full-width ' + (bal < 0 ? 'hint-danger' : 'hint-info');
+    } else {
+        hint.style.display = 'none';
+    }
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const dateInput = document.querySelector('input[name="expense_date"]');
+    if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

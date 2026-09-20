@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Reports — NGO Fund Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Reports</h1>
+        <p>Visual breakdown of fund inflow and utilization</p>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><h2>Donations by Payment Mode</h2></div>
+        <canvas id="modeChart" height="220"></canvas>
+    </div>
+    <div class="card">
+        <div class="card-header"><h2>Monthly Donation Trend</h2></div>
+        <canvas id="monthlyChart" height="220"></canvas>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h2>Project-wise: Raised vs Spent</h2></div>
+    <canvas id="projectChart" height="120"></canvas>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><h2>Top Donors</h2></div>
+        <table class="table">
+            <thead><tr><th>Donor</th><th>Total Contributed</th></tr></thead>
+            <tbody>
+                {% for t in top_donors %}
+                <tr><td>{{ t.name }}</td><td>₹{{ "%.2f"|format(t.total) }}</td></tr>
+                {% else %}
+                <tr><td colspan="2" class="empty-row">No data yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <div class="card-header"><h2>Payment Mode Breakdown</h2></div>
+        <table class="table">
+            <thead><tr><th>Mode</th><th>Count</th><th>Total</th></tr></thead>
+            <tbody>
+                {% for m in by_mode %}
+                <tr><td>{{ m.payment_mode }}</td><td>{{ m.cnt }}</td><td>₹{{ "%.2f"|format(m.total) }}</td></tr>
+                {% else %}
+                <tr><td colspan="3" class="empty-row">No data yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+async function loadReportData() {
+    const res = await fetch("{{ url_for('api_reports_summary') }}");
+    const data = await res.json();
+
+    // Payment mode pie chart
+    new Chart(document.getElementById('modeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: data.by_mode.map(m => m.payment_mode),
+            datasets: [{
+                data: data.by_mode.map(m => m.total),
+                backgroundColor: ['#0d9488', '#16a34a', '#d97706', '#e11d48']
+            }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Monthly trend line chart
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'line',
+        data: {
+            labels: data.monthly.map(m => m.month),
+            datasets: [{
+                label: 'Donations (₹)',
+                data: data.monthly.map(m => m.total),
+                borderColor: '#0d9488',
+                backgroundColor: 'rgba(13,148,136,0.15)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+
+    // Project raised vs spent bar chart
+    new Chart(document.getElementById('projectChart'), {
+        type: 'bar',
+        data: {
+            labels: data.by_project.map(p => p.project_name),
+            datasets: [
+                { label: 'Raised', data: data.by_project.map(p => p.raised), backgroundColor: '#16a34a' },
+                { label: 'Spent', data: data.by_project.map(p => p.spent), backgroundColor: '#e11d48' }
+            ]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+}
+loadReportData();
+</script>
+{% endblock %}
