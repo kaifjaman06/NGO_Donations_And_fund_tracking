@@ -113,8 +113,7 @@ def inject_user():
 
 @app.route("/", methods=["GET"])
 def index():
-    if "admin_id" in session:
-        return redirect(url_for("dashboard"))
+    session.clear()
     return redirect(url_for("login"))
 
 
@@ -666,7 +665,7 @@ def api_reports_summary():
 @app.errorhandler(404)
 def not_found(e):
     if "admin_id" in session:
-        return render_template("dashboard.html"), 404
+        return redirect(url_for("dashboard"))
     return redirect(url_for("login"))
 
 

@@ -95,6 +95,8 @@ a { color: inherit; text-decoration: none; }
     padding: 18px; display: flex; align-items: center; gap: 14px;
     border: 1px solid var(--border);
 }
+.stat-card-link { transition: transform 0.15s, box-shadow 0.15s; }
+.stat-card-link:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(35,36,32,0.10); }
 .stat-icon {
     width: 46px; height: 46px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff;

@@ -8,7 +8,7 @@ class Config:
     MYSQL_HOST = os.environ.get("MYSQL_HOST", "127.0.0.1")
     MYSQL_PORT = int(os.environ.get("MYSQL_PORT", 3306))
     MYSQL_USER = os.environ.get("MYSQL_USER", "root")
-    MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "Kanduri@123")
+    MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "kaifjaman")
     MYSQL_DB = os.environ.get("MYSQL_DB", "ngo_fund_tracking")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

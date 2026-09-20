@@ -7,35 +7,35 @@
 </div>
 
 <div class="stat-grid">
-    <div class="stat-card">
+    <a href="{{ url_for('donors') }}" class="stat-card stat-card-link">
         <div class="stat-icon icon-blue"><i class="fa-solid fa-people-group"></i></div>
         <div>
             <span class="stat-label">Total Donors</span>
             <span class="stat-value">{{ total_donors }}</span>
         </div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ url_for('donations') }}" class="stat-card stat-card-link">
         <div class="stat-icon icon-green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
         <div>
             <span class="stat-label">Total Donations</span>
             <span class="stat-value">₹{{ "%.2f"|format(total_donations) }}</span>
         </div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ url_for('expenses') }}" class="stat-card stat-card-link">
         <div class="stat-icon icon-red"><i class="fa-solid fa-file-invoice-dollar"></i></div>
         <div>
             <span class="stat-label">Total Expenses</span>
             <span class="stat-value">₹{{ "%.2f"|format(total_expenses) }}</span>
         </div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ url_for('projects') }}" class="stat-card stat-card-link">
         <div class="stat-icon icon-purple"><i class="fa-solid fa-diagram-project"></i></div>
         <div>
             <span class="stat-label">Active Projects</span>
             <span class="stat-value">{{ active_projects }}</span>
         </div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a href="{{ url_for('reports') }}" class="stat-card stat-card-link">
         <div class="stat-icon {{ 'icon-green' if balance >= 0 else 'icon-red' }}">
             <i class="fa-solid fa-wallet"></i>
         </div>
@@ -43,7 +43,7 @@
             <span class="stat-label">Fund Balance</span>
             <span class="stat-value">₹{{ "%.2f"|format(balance) }}</span>
         </div>
-    </div>
+    </a>
 </div>
 
 <div class="grid-2">
