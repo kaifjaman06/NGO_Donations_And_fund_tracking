@@ -1,3 +1,8 @@
+# ============================================
+# NGO Fund Tracking Flask application
+# Handles login, dashboard, donations, expenses,
+# projects, receipts, and financial reporting.
+# ============================================
 import functools
 import re
 import secrets
@@ -12,19 +17,24 @@ from flask import (
 from flask.json.provider import DefaultJSONProvider
 from werkzeug.security import check_password_hash, generate_password_hash
 
+# Import the project configuration and database settings.
 from config import Config
 
+# Regex used for validating email addresses in the login and signup flows.
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+# Convert text input to a safe lowercase email string for database checks.
 def normalize_email(value):
     return (value or "").strip().lower()
 
 
+# Verify that the supplied email address matches the application format.
 def is_valid_email(value):
     return bool(EMAIL_RE.fullmatch(normalize_email(value)))
 
 
+# Validate money inputs and reject zero or negative values unless explicitly allowed.
 def validate_amount(value, field_name, *, allow_zero=False):
     try:
         amount = Decimal(str(value).strip())
@@ -43,6 +53,7 @@ def validate_amount(value, field_name, *, allow_zero=False):
     return amount
 
 
+# Custom JSON provider so Decimal values and dates can be safely converted to JSON.
 class NGOJSONProvider(DefaultJSONProvider):
     """Serializes Decimal (MySQL numeric columns) and dates as plain
     JSON-friendly values, so `|tojson` works on raw DB rows in templates."""
@@ -56,9 +67,12 @@ class NGOJSONProvider(DefaultJSONProvider):
         return DefaultJSONProvider.default(obj)
 
 
+# Create the Flask app instance and attach the custom JSON provider.
 app = Flask(__name__)
 app.config.from_object(Config)
 app.json = NGOJSONProvider(app)
+
+# Database helpers keep connection handling in one place for all routes.
 def get_db():
     """Open a fresh MySQL connection. Closed explicitly after each use."""
     return mysql.connector.connect(
@@ -70,6 +84,7 @@ def get_db():
     )
 
 
+# Run SQL statements and return rows as dictionaries for the rest of the app.
 def query_db(sql, params=None, fetchone=False, commit=False):
     """Run a query and return results as dicts. Handles commit for writes."""
     conn = get_db()
@@ -85,6 +100,7 @@ def query_db(sql, params=None, fetchone=False, commit=False):
     finally:
         cur.close()
         conn.close()
+# Protect routes so only logged-in admin users can access them.
 def login_required(view):
     @functools.wraps(view)
     def wrapped(*args, **kwargs):
@@ -95,6 +111,7 @@ def login_required(view):
     return wrapped
 
 
+# Generate and validate the session token before each request to protect forms.
 @app.before_request
 def ensure_csrf_token():
     if "csrf_token" not in session:
@@ -106,17 +123,45 @@ def ensure_csrf_token():
             abort(400, description="Invalid CSRF token.")
 
 
+# Share the current admin name with all templates for navigation and headers.
 @app.context_processor
 def inject_user():
     return {"current_admin": session.get("admin_name")}
 
 
+# Public home page for the NGO landing experience.
 @app.route("/", methods=["GET"])
 def index():
-    session.clear()
-    return redirect(url_for("login"))
+    featured_projects = query_db("""
+        SELECT p.project_id, p.project_name, p.description, p.target_amount, p.status,
+               COALESCE(d.total, 0) AS raised,
+               COALESCE(e.total, 0) AS spent
+        FROM projects p
+        LEFT JOIN (SELECT project_id, SUM(amount) total FROM donations GROUP BY project_id) d
+               ON d.project_id = p.project_id
+        LEFT JOIN (SELECT project_id, SUM(amount) total FROM expenses GROUP BY project_id) e
+               ON e.project_id = p.project_id
+        WHERE p.status = 'Active'
+        ORDER BY raised DESC, p.created_at DESC
+        LIMIT 3
+    """)
+
+    total_donors = query_db("SELECT COUNT(*) c FROM donors", fetchone=True)["c"]
+    total_donations = query_db("SELECT COALESCE(SUM(amount),0) s FROM donations", fetchone=True)["s"]
+    total_expenses = query_db("SELECT COALESCE(SUM(amount),0) s FROM expenses", fetchone=True)["s"]
+    balance = float(total_donations) - float(total_expenses)
+
+    return render_template(
+        "home.html",
+        featured_projects=featured_projects,
+        total_donors=total_donors,
+        total_donations=total_donations,
+        total_expenses=total_expenses,
+        balance=balance,
+    )
 
 
+# Admin login page and authentication flow.
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -147,6 +192,7 @@ def login():
     return render_template("login.html")
 
 
+# Register a new admin account for the NGO system.
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
@@ -196,11 +242,13 @@ def signup():
     return render_template("signup.html")
 
 
+# End the current admin session and redirect back to the login page.
 @app.route("/logout")
 def logout():
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for("login"))
+# Dashboard aggregates the current financial and project totals.
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -253,6 +301,122 @@ def dashboard():
         recent_donations=recent_donations,
         project_funds=project_funds,
     )
+
+
+# Donation landing form used to add a donor and record a contribution.
+@app.route("/donate-now", methods=["GET", "POST"])
+@login_required
+def donate_now():
+    donor_list = query_db("SELECT donor_id, name, email FROM donors ORDER BY name")
+    project_list = query_db("SELECT project_id, project_name FROM projects ORDER BY project_name")
+
+    if request.method == "POST":
+        form = request.form
+        donor_name = (form.get("donor_name") or "").strip()
+        if not donor_name:
+            flash("Donor name is required before submitting a donation.", "danger")
+            return redirect(url_for("donate_now"))
+
+        try:
+            amount = validate_amount(form.get("amount"), "Donation amount")
+        except ValueError as e:
+            flash(str(e), "danger")
+            return redirect(url_for("donate_now"))
+
+        donor_id = form.get("donor_id")
+        if not donor_id:
+            donor_email = (form.get("donor_email") or "").strip() or None
+            donor_phone = (form.get("donor_phone") or "").strip() or None
+            donor_pan = (form.get("donor_pan") or "").strip() or None
+            existing_donor = query_db(
+                "SELECT donor_id FROM donors WHERE email=%s OR phone=%s LIMIT 1",
+                (donor_email, donor_phone),
+                fetchone=True,
+            )
+            if existing_donor:
+                donor_id = existing_donor["donor_id"]
+            else:
+                donor_id = query_db(
+                    "INSERT INTO donors (name, email, phone, donor_type, pan_number) VALUES (%s, %s, %s, %s, %s)",
+                    (
+                        donor_name,
+                        donor_email,
+                        donor_phone,
+                        "Individual",
+                        donor_pan,
+                    ),
+                    commit=True,
+                )
+
+        receipt_no = generate_receipt_no()
+        payment_service = (form.get("payment_service") or form.get("payment_mode") or "UPI").strip()
+
+        valid_payment_modes = {
+            "UPI": "Online",
+            "Razorpay": "Online",
+            "Stripe": "Online",
+            "PayPal": "Online",
+            "Debit Card": "Online",
+            "Credit Card": "Online",
+            "Bank Transfer": "Bank Transfer",
+            "Cash": "Cash",
+            "Cheque": "Cheque",
+            "Online": "Online",
+        }
+        payment_mode = valid_payment_modes.get(payment_service, "Online")
+
+        try:
+            donation_id = query_db(
+                """INSERT INTO donations (donor_id, project_id, amount, payment_mode,
+                   transaction_reference, donation_date, receipt_no, remarks)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                (
+                    donor_id,
+                    form.get("project_id") or None,
+                    amount,
+                    payment_mode,
+                    (form.get("transaction_reference") or "").strip() or None,
+                    form.get("donation_date") or date.today().isoformat(),
+                    receipt_no,
+                    (form.get("remarks") or "").strip() or None,
+                ),
+                commit=True,
+            )
+            flash(f"Thank you! Your donation of ₹{amount} via {payment_service} was recorded successfully.", "success")
+            return redirect(url_for("view_receipt", donation_id=donation_id))
+        except MySQLError as e:
+            flash(f"Could not record donation: {e}", "danger")
+            return redirect(url_for("donate_now"))
+
+    total_donors = query_db("SELECT COUNT(*) c FROM donors", fetchone=True)["c"]
+    total_donations = query_db("SELECT COALESCE(SUM(amount),0) s FROM donations", fetchone=True)["s"]
+    active_projects = query_db("SELECT COUNT(*) c FROM projects WHERE status = 'Active'", fetchone=True)["c"]
+    balance = float(total_donations) - float(query_db("SELECT COALESCE(SUM(amount),0) s FROM expenses", fetchone=True)["s"])
+    donation_summary = query_db("""
+        SELECT payment_mode, COALESCE(SUM(amount),0) AS total
+        FROM donations
+        GROUP BY payment_mode
+        ORDER BY total DESC
+        LIMIT 4
+    """)
+    donation_summary = {
+        "labels": [row["payment_mode"] for row in donation_summary],
+        "values": [float(row["total"]) for row in donation_summary],
+    }
+
+    return render_template(
+        "donate_now.html",
+        donor_list=donor_list,
+        project_list=project_list,
+        total_donors=total_donors,
+        total_donations=total_donations,
+        active_projects=active_projects,
+        balance=balance,
+        donation_summary=donation_summary,
+    )
+
+
+# Donor routes provide listing, searching, creation, editing, and deletion.
 @app.route("/donors")
 @login_required
 def donors():
@@ -327,6 +491,7 @@ def delete_donor(donor_id):
     except MySQLError as e:
         flash(f"Could not delete donor (they may have linked donations): {e}", "danger")
     return redirect(url_for("donors"))
+# Project routes manage fundraising targets and project status.
 @app.route("/projects")
 @login_required
 def projects():
@@ -403,6 +568,7 @@ def delete_project(project_id):
     except MySQLError as e:
         flash(f"Could not delete project: {e}", "danger")
     return redirect(url_for("projects"))
+# Create unique receipt numbers for donations based on the current date and sequence.
 def generate_receipt_no():
     today = date.today().strftime("%Y%m%d")
     count = query_db(
@@ -413,6 +579,7 @@ def generate_receipt_no():
     return f"{app.config['RECEIPT_PREFIX']}-{today}-{count + 1:04d}"
 
 
+# Donation routes record contributions and expose printable receipts.
 @app.route("/donations")
 @login_required
 def donations():
@@ -495,6 +662,7 @@ def delete_donation(donation_id):
     return redirect(url_for("donations"))
 
 
+# Render a printable receipt for a stored donation entry.
 @app.route("/receipt/<int:donation_id>")
 @login_required
 def view_receipt(donation_id):
@@ -509,6 +677,7 @@ def view_receipt(donation_id):
     if not donation:
         abort(404)
     return render_template("receipt.html", donation=donation)
+# Expense routes record spending against a project.
 @app.route("/expenses")
 @login_required
 def expenses():
@@ -588,9 +757,20 @@ def delete_expense(expense_id):
     except MySQLError as e:
         flash(f"Could not delete expense: {e}", "danger")
     return redirect(url_for("expenses"))
+# Reporting routes provide server-rendered and chart-oriented summaries.
 @app.route("/reports")
 @login_required
 def reports():
+    total_donations = query_db(
+        "SELECT COALESCE(SUM(amount),0) AS total FROM donations",
+        fetchone=True,
+    )["total"]
+    total_expenses = query_db(
+        "SELECT COALESCE(SUM(amount),0) AS total FROM expenses",
+        fetchone=True,
+    )["total"]
+    remaining_balance = float(total_donations) - float(total_expenses)
+
     by_mode = query_db("""
         SELECT payment_mode, COALESCE(SUM(amount),0) AS total, COUNT(*) AS cnt
         FROM donations GROUP BY payment_mode
@@ -599,7 +779,8 @@ def reports():
     by_project = query_db("""
         SELECT p.project_name,
                COALESCE(d.total,0) AS raised,
-               COALESCE(e.total,0) AS spent
+               COALESCE(e.total,0) AS spent,
+               (COALESCE(d.total,0) - COALESCE(e.total,0)) AS remaining
         FROM projects p
         LEFT JOIN (SELECT project_id, SUM(amount) total FROM donations GROUP BY project_id) d
                ON d.project_id = p.project_id
@@ -627,6 +808,9 @@ def reports():
 
     return render_template(
         "reports.html",
+        total_donations=total_donations,
+        total_expenses=total_expenses,
+        remaining_balance=remaining_balance,
         by_mode=by_mode,
         by_project=by_project,
         monthly=monthly,
@@ -634,6 +818,7 @@ def reports():
     )
 
 
+# JSON endpoint used by chart widgets on the dashboard and reports pages.
 @app.route("/api/reports/summary")
 @login_required
 def api_reports_summary():

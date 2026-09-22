@@ -1,9 +1,23 @@
+{# Dashboard summary cards and recent activity overview. #}
 {% extends "base.html" %}
 {% block title %}Dashboard — NGO Fund Tracker{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1>Dashboard</h1>
-    <p>Overview of donors, donations, and fund utilization</p>
+    <div>
+        <h1>Dashboard</h1>
+        <p>Overview of donors, donations, and fund utilization</p>
+    </div>
+    <a href="{{ url_for('donate_now') }}" class="btn btn-primary">
+        <i class="fa-solid fa-circle-dollar-to-slot"></i> Donate Now
+    </a>
+</div>
+
+<div class="donation-banner">
+    <div>
+        <span class="eyebrow">Campaign spotlight</span>
+        <h2>Drive urgent relief and sustainable community support.</h2>
+    </div>
+    <a href="{{ url_for('donate_now') }}" class="btn btn-light">Start a donation</a>
 </div>
 
 <div class="stat-grid">
@@ -44,6 +58,23 @@
             <span class="stat-value">₹{{ "%.2f"|format(balance) }}</span>
         </div>
     </a>
+</div>
+
+<div class="grid-2 dashboard-charts">
+    <div class="card">
+        <div class="card-header">
+            <h2>Donation trend</h2>
+            <a href="{{ url_for('reports') }}" class="link">View report →</a>
+        </div>
+        <canvas id="dashboardTrendChart" height="180"></canvas>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h2>Payment channels</h2>
+            <a href="{{ url_for('reports') }}" class="link">View report →</a>
+        </div>
+        <canvas id="dashboardModeChart" height="180"></canvas>
+    </div>
 </div>
 
 <div class="grid-2">
@@ -99,4 +130,52 @@
         </table>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+async function loadDashboardCharts() {
+    const res = await fetch("{{ url_for('api_reports_summary') }}");
+    const data = await res.json();
+
+    new Chart(document.getElementById('dashboardTrendChart'), {
+        type: 'line',
+        data: {
+            labels: data.monthly.map(item => item.month),
+            datasets: [{
+                label: 'Donations (₹)',
+                data: data.monthly.map(item => item.total),
+                borderColor: '#0d9488',
+                backgroundColor: 'rgba(13,148,136,0.12)',
+                fill: true,
+                tension: 0.35,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    new Chart(document.getElementById('dashboardModeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: data.by_mode.map(item => item.payment_mode),
+            datasets: [{
+                data: data.by_mode.map(item => item.total),
+                backgroundColor: ['#0d9488', '#16a34a', '#d97706', '#f97362', '#e11d48']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
+loadDashboardCharts();
+</script>
 {% endblock %}

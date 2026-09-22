@@ -1,3 +1,4 @@
+# Flask serves the web application; Connector/Python provides MySQL access.
 Flask==3.0.3
 mysql-connector-python==8.4.0
 Werkzeug==3.0.3

@@ -1,3 +1,4 @@
+{# Render server-side feedback messages consistently across all pages. #}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     <div class="flash-stack">

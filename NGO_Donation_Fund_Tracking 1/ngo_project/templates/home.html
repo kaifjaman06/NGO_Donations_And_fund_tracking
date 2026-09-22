@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Support a Cause — NGO Fund Tracker{% endblock %}
+{% block content_public %}
+<div class="public-home">
+    <header class="public-header">
+        <div class="public-nav">
+            <div class="brand-lockup">
+                <i class="fa-solid fa-hand-holding-heart"></i>
+                <span>NGO Fund Tracker</span>
+            </div>
+
+            <nav class="public-nav-links">
+                <a href="#impact">Impact</a>
+                <a href="#projects">Projects</a>
+                <a href="#stories">Stories</a>
+            </nav>
+
+            <div class="public-nav-actions">
+                <a href="{{ url_for('login') }}" class="btn btn-ghost">Admin Login</a>
+                <a href="{{ url_for('donate_now') }}" class="btn btn-primary">Donate Now</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero-section">
+            <div>
+                <span class="hero-kicker"><i class="fa-solid fa-seedling"></i> Transforming lives</span>
+                <h1>Support education, relief, and community action.</h1>
+                <p>
+                    Your generosity helps children learn, families recover, and communities thrive.
+                    Every contribution supports real, measurable impact across urgent and long-term needs.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="{{ url_for('donate_now') }}" class="btn btn-primary">Give today</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-ghost">View dashboard</a>
+                </div>
+
+                <div class="hero-stats">
+                    <div>
+                        <span class="mini-label">Donors</span>
+                        <strong>{{ total_donors }}</strong>
+                    </div>
+                    <div>
+                        <span class="mini-label">Raised</span>
+                        <strong>₹{{ '%.2f'|format(total_donations) }}</strong>
+                    </div>
+                    <div>
+                        <span class="mini-label">Balance</span>
+                        <strong>₹{{ '%.2f'|format(balance) }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-panel">
+                <h3>Impact at a glance</h3>
+                <div class="stat-rail">
+                    <div class="stat-rail-item">
+                        <span>School supplies funded</span>
+                        <strong>320</strong>
+                    </div>
+                    <div class="stat-rail-item">
+                        <span>Families supported</span>
+                        <strong>140</strong>
+                    </div>
+                    <div class="stat-rail-item">
+                        <span>Medical aid delivered</span>
+                        <strong>86</strong>
+                    </div>
+                    <div class="stat-rail-item">
+                        <span>Water access projects</span>
+                        <strong>12</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="impact" class="home-section">
+            <div class="section-heading">
+                <h2>Why people give</h2>
+                <p>Transparent, community-focused support that creates visible change.</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-book-open-reader"></i></div>
+                    <h3>Education</h3>
+                    <p>Provide books, tuition support, and school essentials for children in need.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <h3>Healthcare</h3>
+                    <p>Fund emergency treatment, medicines, and health support for vulnerable families.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-droplet"></i></div>
+                    <h3>Clean Water</h3>
+                    <p>Back infrastructure and access projects that improve safe water availability.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-people-roof"></i></div>
+                    <h3>Relief Support</h3>
+                    <p>Deliver emergency support quickly during hardship, crisis, and urgent need.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="projects" class="home-section">
+            <div class="section-heading">
+                <h2>Featured projects</h2>
+                <p>Real programs supported through transparent funding and careful allocation.</p>
+            </div>
+
+            <div class="project-showcase">
+                {% for project in featured_projects %}
+                {% set pct = ((project.raised / project.target_amount * 100) if project.target_amount and project.target_amount > 0 else 0) %}
+                <div class="project-card-panel">
+                    <div class="project-meta">
+                        <span class="badge badge-status-active">{{ project.status }}</span>
+                        <span>{{ project.project_name }}</span>
+                    </div>
+                    <h3>{{ project.project_name }}</h3>
+                    <p>{{ project.description or 'A mission-driven project helping communities thrive.' }}</p>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width: {{ [pct, 100]|min }}%"></div>
+                    </div>
+                    <div class="project-money">
+                        <span>Raised: <strong>₹{{ '%.2f'|format(project.raised) }}</strong></span>
+                        <span>{{ '%.0f'|format(pct) }}%</span>
+                    </div>
+                    <div class="project-money">
+                        <span>Target: ₹{{ '%.2f'|format(project.target_amount) }}</span>
+                        <span>Spent: ₹{{ '%.2f'|format(project.spent) }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="project-card-panel">
+                    <h3>No active projects yet</h3>
+                    <p>New initiatives will appear here as soon as they are created.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="stories" class="home-section">
+            <div class="section-heading">
+                <h2>Stories of impact</h2>
+                <p>Every contribution brings hope, dignity, and practical support to families and communities.</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-quote-left"></i></div>
+                    <h3>“We are back in school”</h3>
+                    <p>School kits and access support helped children continue their education without interruption.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-quote-left"></i></div>
+                    <h3>“We felt seen”</h3>
+                    <p>Emergency assistance brought food, health support, and a sense of security to vulnerable families.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-quote-left"></i></div>
+                    <h3>“Clean water changed everything”</h3>
+                    <p>Water access projects reduced health risks and improved daily life for entire neighborhoods.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="home-cta">
+            <div>
+                <h3>Help us build a stronger future.</h3>
+                <p>Support the next project, fund a crisis response, or sponsor a child’s education.</p>
+            </div>
+            <a href="{{ url_for('donate_now') }}" class="btn btn-light">Donate now</a>
+        </div>
+    </main>
+
+    <footer class="public-footer">
+        © 2026 NGO Fund Tracker • Transparent giving for a better tomorrow
+    </footer>
+</div>
+{% endblock %}

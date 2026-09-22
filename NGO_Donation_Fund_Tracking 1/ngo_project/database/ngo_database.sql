@@ -1,5 +1,8 @@
+-- Create the application database before defining its tables.
 CREATE DATABASE IF NOT EXISTS ngo_fund_tracking;
 USE ngo_fund_tracking;
+
+-- Store staff accounts used by the Flask session-based login flow.
 CREATE TABLE IF NOT EXISTS admin (
     admin_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -9,6 +12,7 @@ CREATE TABLE IF NOT EXISTS admin (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Store donor identity and contact information.
 CREATE TABLE IF NOT EXISTS donors (
     donor_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
@@ -21,6 +25,7 @@ CREATE TABLE IF NOT EXISTS donors (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Store projects and their fundraising targets.
 CREATE TABLE IF NOT EXISTS projects (
     project_id INT AUTO_INCREMENT PRIMARY KEY,
     project_name VARCHAR(200) NOT NULL,
@@ -32,12 +37,13 @@ CREATE TABLE IF NOT EXISTS projects (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Link donations to donors and optionally to a project.
 CREATE TABLE IF NOT EXISTS donations (
     donation_id INT AUTO_INCREMENT PRIMARY KEY,
     donor_id INT NOT NULL,
     project_id INT,
     amount DECIMAL(14,2) NOT NULL,
-    payment_mode ENUM('Online', 'Cheque', 'Bank Transfer', 'Cash') NOT NULL,
+    payment_mode ENUM('Online', 'Cheque', 'Bank Transfer', 'Cash', 'UPI', 'Razorpay', 'Stripe', 'PayPal', 'Debit Card', 'Credit Card') NOT NULL,
     transaction_reference VARCHAR(100),
     donation_date DATE NOT NULL,
     receipt_no VARCHAR(30) UNIQUE,
@@ -47,6 +53,7 @@ CREATE TABLE IF NOT EXISTS donations (
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE SET NULL
 );
 
+-- Track project spending used by balance and report calculations.
 CREATE TABLE IF NOT EXISTS expenses (
     expense_id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,

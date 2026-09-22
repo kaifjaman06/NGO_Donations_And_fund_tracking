@@ -1,3 +1,4 @@
+{# Financial charts and report tables populated by the reporting routes. #}
 {% extends "base.html" %}
 {% block title %}Reports — NGO Fund Tracker{% endblock %}
 {% block content %}
@@ -5,6 +6,21 @@
     <div>
         <h1>Reports</h1>
         <p>Visual breakdown of fund inflow and utilization</p>
+    </div>
+</div>
+
+<div class="report-summary-grid">
+    <div class="card report-stat-card">
+        <span class="mini-label">Total donated</span>
+        <strong>₹{{ "%.2f"|format(total_donations) }}</strong>
+    </div>
+    <div class="card report-stat-card">
+        <span class="mini-label">Total spent</span>
+        <strong>₹{{ "%.2f"|format(total_expenses) }}</strong>
+    </div>
+    <div class="card report-stat-card {{ 'report-stat-positive' if remaining_balance >= 0 else 'report-stat-negative' }}">
+        <span class="mini-label">Remaining balance</span>
+        <strong>₹{{ "%.2f"|format(remaining_balance) }}</strong>
     </div>
 </div>
 
@@ -22,6 +38,27 @@
 <div class="card">
     <div class="card-header"><h2>Project-wise: Raised vs Spent</h2></div>
     <canvas id="projectChart" height="120"></canvas>
+</div>
+
+<div class="card">
+    <div class="card-header"><h2>Project Balance Snapshot</h2></div>
+    <table class="table">
+        <thead>
+            <tr><th>Project</th><th>Raised</th><th>Spent</th><th>Remaining</th></tr>
+        </thead>
+        <tbody>
+            {% for p in by_project %}
+            <tr>
+                <td>{{ p.project_name }}</td>
+                <td>₹{{ "%.2f"|format(p.raised) }}</td>
+                <td>₹{{ "%.2f"|format(p.spent) }}</td>
+                <td class="{{ 'text-success' if p.remaining >= 0 else 'text-danger' }}">₹{{ "%.2f"|format(p.remaining) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="empty-row">No project data yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
 <div class="grid-2">

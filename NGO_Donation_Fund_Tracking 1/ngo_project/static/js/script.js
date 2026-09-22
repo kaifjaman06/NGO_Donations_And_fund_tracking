@@ -1,3 +1,4 @@
+// Shared browser behavior for modal forms and temporary notifications.
 // Generic modal helpers used across donors / donations / projects / expenses pages
 function openModal(id) {
     const modal = document.getElementById(id);

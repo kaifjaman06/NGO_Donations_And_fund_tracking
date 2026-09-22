@@ -1,3 +1,4 @@
+<!-- Project overview, setup instructions, and operational notes. -->
 # NGO Donation Fund Tracking System
 
 A Flask + MySQL web application for tracking donors, donations (across

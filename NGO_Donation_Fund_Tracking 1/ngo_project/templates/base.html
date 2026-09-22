@@ -1,3 +1,4 @@
+{# Shared document shell, navigation, flash messages, and content blocks. #}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,6 +22,9 @@
             </a>
             <a href="{{ url_for('donors') }}" class="{{ 'active' if request.endpoint=='donors' }}">
                 <i class="fa-solid fa-people-group"></i> Donors
+            </a>
+            <a href="{{ url_for('donate_now') }}" class="{{ 'active' if request.endpoint=='donate_now' }}">
+                <i class="fa-solid fa-hand-holding-heart"></i> Donate Now
             </a>
             <a href="{{ url_for('donations') }}" class="{{ 'active' if request.endpoint=='donations' }}">
                 <i class="fa-solid fa-hand-holding-dollar"></i> Donations

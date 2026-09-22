@@ -1,0 +1,205 @@
+{# Donation entry page with multi-channel payment options and donation impact summary. #}
+{% extends "base.html" %}
+{% block title %}Donate Now — NGO Fund Tracker{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Donate Now</h1>
+        <p>Support urgent needs with secure digital giving and transparent impact tracking</p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">
+        <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="donate-hero">
+    <div>
+        <span class="eyebrow">Fundraising campaign</span>
+        <h2>Every contribution powers our next life-changing intervention.</h2>
+        <p>Support education, healthcare, relief, and community development with a quick, secure donation experience.</p>
+    </div>
+    <div class="hero-stats">
+        <div>
+            <span class="mini-label">Raised this month</span>
+            <strong>₹{{ "%.2f"|format(total_donations) }}</strong>
+        </div>
+        <div>
+            <span class="mini-label">Active initiatives</span>
+            <strong>{{ active_projects }}</strong>
+        </div>
+        <div>
+            <span class="mini-label">Impact balance</span>
+            <strong>₹{{ "%.2f"|format(balance) }}</strong>
+        </div>
+    </div>
+</div>
+
+<div class="grid-2 donate-layout">
+    <div class="card">
+        <div class="card-header">
+            <h2>Donation details</h2>
+        </div>
+
+        <form method="POST" action="{{ url_for('donate_now') }}" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+
+            <label class="full-width">Select donor
+                <select name="donor_id" id="donorSelect">
+                    <option value="">New donor / Individual contribution</option>
+                    {% for donor in donor_list %}
+                    <option value="{{ donor.donor_id }}">{{ donor.name }}{% if donor.email %} — {{ donor.email }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Donor name *<input type="text" name="donor_name" placeholder="Full name" required></label>
+            <label>Email<input type="email" name="donor_email" placeholder="name@example.com"></label>
+            <label>Phone<input type="tel" name="donor_phone" placeholder="+91 98xxx xxxxx"></label>
+            <label>PAN / ID<input type="text" name="donor_pan" placeholder="Optional"></label>
+
+            <label class="full-width">Support area
+                <select name="project_id">
+                    <option value="">General fund / unrestricted support</option>
+                    {% for project in project_list %}
+                    <option value="{{ project.project_id }}">{{ project.project_name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Amount *<input type="number" step="0.01" min="1" name="amount" placeholder="2500" required></label>
+            <label>Preferred payment mode
+                <select name="payment_mode">
+                    <option value="UPI">UPI</option>
+                    <option value="Razorpay">Razorpay</option>
+                    <option value="Stripe">Stripe</option>
+                    <option value="PayPal">PayPal</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Debit Card">Debit Card</option>
+                    <option value="Credit Card">Credit Card</option>
+                </select>
+            </label>
+
+            <div class="full-width">
+                <div class="quick-amounts" aria-label="Quick donation amounts">
+                    <button type="button" class="quick-amount" data-amount="500">₹500</button>
+                    <button type="button" class="quick-amount" data-amount="1000">₹1,000</button>
+                    <button type="button" class="quick-amount" data-amount="2500">₹2,500</button>
+                    <button type="button" class="quick-amount" data-amount="5000">₹5,000</button>
+                    <button type="button" class="quick-amount" data-amount="10000">₹10,000</button>
+                </div>
+            </div>
+
+            <div class="full-width">
+                <label>Choose payment service</label>
+                <div class="service-grid">
+                    <label class="service-option">
+                        <input type="radio" name="payment_service" value="UPI" checked>
+                        <span><i class="fa-solid fa-mobile-screen-button"></i><strong>UPI</strong><small>GPay / PhonePe / Paytm</small></span>
+                    </label>
+                    <label class="service-option">
+                        <input type="radio" name="payment_service" value="Razorpay">
+                        <span><i class="fa-solid fa-credit-card"></i><strong>Razorpay</strong><small>Cards, wallets & net banking</small></span>
+                    </label>
+                    <label class="service-option">
+                        <input type="radio" name="payment_service" value="Stripe">
+                        <span><i class="fa-brands fa-stripe-s"></i><strong>Stripe</strong><small>Global card payment</small></span>
+                    </label>
+                    <label class="service-option">
+                        <input type="radio" name="payment_service" value="PayPal">
+                        <span><i class="fa-brands fa-paypal"></i><strong>PayPal</strong><small>Quick international transfer</small></span>
+                    </label>
+                    <label class="service-option">
+                        <input type="radio" name="payment_service" value="Bank Transfer">
+                        <span><i class="fa-solid fa-building-columns"></i><strong>Bank Transfer</strong><small>NEFT / IMPS / direct debit</small></span>
+                    </label>
+                </div>
+            </div>
+
+            <label class="full-width">Transaction reference / UPI ID
+                <input type="text" name="transaction_reference" placeholder="Example: john@upi or TXN987654321">
+            </label>
+
+            <label class="full-width">Donor note<textarea name="remarks" rows="3" placeholder="Optional message for the team or campaign"></textarea></label>
+
+            <div class="form-actions full-width">
+                <button type="reset" class="btn btn-ghost">Reset</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-circle-dollar-to-slot"></i> Confirm Donation</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card donation-side-panel">
+        <div class="card-header">
+            <h2>Why your support matters</h2>
+        </div>
+
+        <div class="impact-metrics">
+            <div>
+                <span class="mini-label">Total donors</span>
+                <strong>{{ total_donors }}</strong>
+            </div>
+            <div>
+                <span class="mini-label">Monthly impact</span>
+                <strong>₹{{ "%.2f"|format(total_donations) }}</strong>
+            </div>
+        </div>
+
+        <ul class="impact-list">
+            <li><i class="fa-solid fa-heart-circle-check"></i> Education scholarships and school kits</li>
+            <li><i class="fa-solid fa-kit-medical"></i> Medical support and emergency relief</li>
+            <li><i class="fa-solid fa-seedling"></i> Sustainable community development programs</li>
+            <li><i class="fa-solid fa-people-roof"></i> Women empowerment and shelter assistance</li>
+        </ul>
+
+        <div class="mini-chart-wrap">
+            <canvas id="donationPulseChart" height="180"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const amountInput = document.querySelector('input[name="amount"]');
+  document.querySelectorAll('.quick-amount').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const value = btn.dataset.amount;
+      amountInput.value = value;
+      document.querySelectorAll('.quick-amount').forEach((item) => item.classList.toggle('selected', item === btn));
+    });
+  });
+
+  document.getElementById('donorSelect').addEventListener('change', function () {
+    if (!this.value) {
+      document.querySelector('input[name="donor_name"]').value = '';
+      document.querySelector('input[name="donor_email"]').value = '';
+      document.querySelector('input[name="donor_phone"]').value = '';
+      document.querySelector('input[name="donor_pan"]').value = '';
+      return;
+    }
+    const selected = this.options[this.selectedIndex].text.split(' — ');
+    document.querySelector('input[name="donor_name"]').value = selected[0] || '';
+  });
+
+  const summary = {{ donation_summary | tojson }};
+  new Chart(document.getElementById('donationPulseChart'), {
+    type: 'doughnut',
+    data: {
+      labels: summary.labels,
+      datasets: [{
+        data: summary.values,
+        backgroundColor: ['#0d9488', '#16a34a', '#f97362', '#d97706'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } }
+      }
+    }
+  });
+</script>
+{% endblock %}
